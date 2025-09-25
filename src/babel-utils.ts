@@ -8,7 +8,13 @@ export const transformWithPlugins = async (
     transform(
       code,
       {
-        plugins,
+        plugins: ["@babel/plugin-syntax-jsx", ...plugins],
+        parserOpts: {
+          sourceType: "unambiguous",
+          allowImportExportEverywhere: true,
+          allowReturnOutsideFunction: true,
+          plugins: ["jsx", "typescript"]
+        },
         compact: false,
         minified: false,
         comments: false,

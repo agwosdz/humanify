@@ -49,6 +49,7 @@
   "license": "MIT",
   "dependencies": {
     "@babel/core": "^7.25.2",
+    "@babel/plugin-syntax-jsx": "^7.27.1",
     "@babel/types": "^7.25.2",
     "@google/generative-ai": "^0.24.0",
     "@types/babel__core": "^7.20.5",
