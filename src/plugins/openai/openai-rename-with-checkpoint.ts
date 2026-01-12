@@ -59,6 +59,16 @@ export function openaiRenameWithCheckpoint({
     registry = r;
   };
 
+  (plugin as any).getVisitor = () => async (name: string, context: string, prompt: string) => {
+    const response = await client.chat.completions.create({
+      model,
+      messages: [{ role: "user", content: prompt }]
+    });
+    return response.choices[0].message?.content || "";
+  };
+  (plugin as any).contextWindowSize = contextWindowSize;
+  Object.defineProperty(plugin, 'name', { value: 'openaiRename' });
+
   return plugin;
 }
 

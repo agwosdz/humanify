@@ -1,0 +1,11 @@
+{
+  "mappings": [
+    [
+      "a",
+      "isInitialized"
+    ]
+  ],
+  "usedNames": [
+    "isInitialized"
+  ]
+}

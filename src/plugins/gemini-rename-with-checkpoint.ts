@@ -51,6 +51,14 @@ export function geminiRenameWithCheckpoint({
     registry = r;
   };
 
+  (plugin as any).getVisitor = () => async (name: string, context: string, prompt: string) => {
+    const model = client.getGenerativeModel({ model: modelName });
+    const result = await model.generateContent(prompt);
+    return result.response.text();
+  };
+  (plugin as any).contextWindowSize = contextWindowSize;
+  Object.defineProperty(plugin, 'name', { value: 'geminiRename' });
+
   return plugin;
 }
 

@@ -6,6 +6,7 @@ import { visitAllIdentifiersWithCheckpoint } from "./visit-all-identifiers-with-
 import { RenameRegistry } from "../../registry.js";
 import { CheckpointManager } from "../../checkpoint.js";
 import { verbose } from "../../verbose.js";
+import { gbnf } from "./gbnf.js";
 
 const PADDING_CHARS = 200;
 
@@ -41,6 +42,12 @@ export function localRenameWithCheckpoint(
   (plugin as any).setRegistry = (r: RenameRegistry) => {
     registry = r;
   };
+
+  (plugin as any).getVisitor = () => (name: string, context: string, promptText: string) => {
+    return prompt(promptText, "{}", gbnf`${/./}`);
+  };
+  (plugin as any).contextWindowSize = contextWindowSize;
+  Object.defineProperty(plugin, 'name', { value: 'localRename' });
 
   return plugin;
 }

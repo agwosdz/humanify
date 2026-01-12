@@ -3,6 +3,8 @@ import { defineFilename } from "./define-filename.js";
 import { Prompt } from "./llama.js";
 import { unminifyVariableName } from "./unminify-variable-name.js";
 import { visitAllIdentifiers } from "./visit-all-identifiers.js";
+import { RenameRegistry } from "../../registry.js";
+import { gbnf } from "./gbnf.js";
 
 const PADDING_CHARS = 200;
 
@@ -30,7 +32,7 @@ export const localReanme = (prompt: Prompt, contextWindowSize: number) => {
   };
 
   (localRenamePlugin as any).getVisitor = () => (name: string, context: string, promptText: string) => {
-    return prompt(promptText, "{}", { parseResult: (r) => r });
+    return prompt(promptText, "{}", gbnf`${/./}`);
   };
   (localRenamePlugin as any).contextWindowSize = contextWindowSize;
 
