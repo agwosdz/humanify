@@ -11,7 +11,7 @@ export function assertMatches(actual: string, expected: string[]) {
 
 export async function humanify(...argv: string[]) {
   const extraArgs = argv.includes("local") ? ["--seed", "1"] : [];
-  const process = spawn("npx", ["tsx", "src/index.ts", ...argv, ...extraArgs], { shell: true });
+  const process = spawn("node", ["./dist/index.mjs", ...argv, ...extraArgs], { shell: true });
   const stdout: string[] = [];
   const stderr: string[] = [];
   process.stdout.on("data", (data) => stdout.push(data.toString()));
