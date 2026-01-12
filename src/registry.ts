@@ -16,8 +16,20 @@ export class RenameRegistry {
             try {
                 const data = await fs.readFile(this.registryPath, "utf-8");
                 const json = JSON.parse(data);
-                this.mappings = new Map(json.mappings);
-                this.usedNames = new Set(json.usedNames);
+
+                // Merge mappings
+                if (json.mappings) {
+                    for (const [original, suggested] of json.mappings) {
+                        this.mappings.set(original, suggested);
+                    }
+                }
+
+                // Merge used names
+                if (json.usedNames) {
+                    for (const name of json.usedNames) {
+                        this.usedNames.add(name);
+                    }
+                }
             } catch (e) {
                 console.warn(`Warning: Failed to load registry from ${this.registryPath}:`, e);
             }
