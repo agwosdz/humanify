@@ -40,7 +40,8 @@ export const openai = cli()
       verbose.enabled = true;
     }
 
-    const files = await glob(inputs, { absolute: true });
+    const normalizedInputs = inputs.map(i => i.replace(/\\/g, '/'));
+    const files = await glob(normalizedInputs, { absolute: true });
     if (files.length === 0) {
       err("No files found matching the provided inputs.");
     }

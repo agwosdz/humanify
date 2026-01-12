@@ -40,7 +40,8 @@ export const local = cli()
 
     verbose.log("Starting local inference with options: ", opts);
 
-    const files = await glob(inputs, { absolute: true });
+    const normalizedInputs = inputs.map(i => i.replace(/\\/g, '/'));
+    const files = await glob(normalizedInputs, { absolute: true });
     if (files.length === 0) {
       err("No files found matching the provided inputs.");
     }

@@ -31,10 +31,6 @@ test("cli supports glob patterns and multiple files", async () => {
         TEST_DIR
     );
 
-    console.log("Exit Code:", exitCode);
-    console.log("Stdout:", stdout);
-    console.log("Stderr:", stderr);
-
     assert.strictEqual(exitCode, 0, `Command failed with stderr: ${stderr}`);
 
     const output1 = path.join(TEST_DIR, "test-1.min.deobfuscated.js");
@@ -48,4 +44,18 @@ test("cli supports glob patterns and multiple files", async () => {
 
     assert(content1.includes("one"), "First output content check");
     assert(content2.includes("two"), "Second output content check");
+});
+
+test("cli supports Windows-style backslashes", async () => {
+    // Run humanify local with a backslashed path
+    const { exitCode, stderr } = await humanify(
+        "local",
+        ".\\test-1.min.js",
+        "--outputDir",
+        TEST_DIR
+    );
+
+    assert.strictEqual(exitCode, 0, `Command failed with stderr: ${stderr}`);
+    const output = path.join(TEST_DIR, "test-1.min.deobfuscated.js");
+    assert(existsSync(output), "File with backslashes should be processed");
 });
