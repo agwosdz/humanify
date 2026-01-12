@@ -10,7 +10,7 @@ export async function unminify(
 ) {
   ensureFileExists(filename);
   const bundledCode = await fs.readFile(filename, "utf-8");
-  const extractedFiles = await webcrack(bundledCode, outputDir);
+  const extractedFiles = await webcrack(bundledCode, outputDir, filename);
 
   for (let i = 0; i < extractedFiles.length; i++) {
     console.log(`Processing file ${i + 1}/${extractedFiles.length}`);
