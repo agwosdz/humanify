@@ -1,10 +1,19 @@
 import { webcrack as wc } from "webcrack";
 import fs from "fs/promises";
+import { existsSync } from "fs";
 import path from "path";
 
 type File = {
   path: string;
 };
+
+async function backupFile(filePath: string) {
+  if (existsSync(filePath)) {
+    const backupPath = `${filePath}.old`;
+    await fs.rm(backupPath, { force: true });
+    await fs.rename(filePath, backupPath);
+  }
+}
 
 export async function webcrack(
   code: string,
@@ -12,7 +21,6 @@ export async function webcrack(
   originalFilename?: string
 ): Promise<File[]> {
   const cracked = await wc(code);
-  await fs.rm(outputDir, { recursive: true, force: true });
   await fs.mkdir(outputDir, { recursive: true });
   await cracked.save(outputDir);
 
@@ -26,15 +34,16 @@ export async function webcrack(
         path.extname(originalFilename)
       );
       const newName = `${inputBaseName}.deobfuscated.js`;
-      await fs.rename(
-        path.join(outputDir, "deobfuscated.js"),
-        path.join(outputDir, newName)
-      );
+      const targetPath = path.join(outputDir, newName);
+      const sourcePath = path.join(outputDir, "deobfuscated.js");
+
+      await backupFile(targetPath);
+      await fs.rename(sourcePath, targetPath);
     }
   }
 
   const output = await fs.readdir(outputDir);
   return output
-    .filter((file) => file.endsWith(".js"))
+    .filter((file) => file.endsWith(".js") && !file.endsWith(".old"))
     .map((file) => ({ path: path.join(outputDir, file) }));
 }

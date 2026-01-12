@@ -20,6 +20,18 @@ export const MODELS: { [modelName: string]: ModelDefinition } = {
   "8b": {
     url: url`https://huggingface.co/lmstudio-community/Meta-Llama-3.1-8B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf?download=true`,
     wrapper: new Llama3_1ChatWrapper()
+  },
+  "phi4-q4": {
+    url: url`https://huggingface.co/unsloth/Phi-4-mini-instruct-GGUF/resolve/main/Phi-4-mini-instruct-Q4_K_M.gguf?download=true`
+  },
+  "phi4-q8": {
+    url: url`https://huggingface.co/unsloth/Phi-4-mini-instruct-GGUF/resolve/main/Phi-4-mini-instruct.Q8_0.gguf?download=true`
+  },
+  "phi3-q4": {
+    url: url`https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/Phi-3-mini-4k-instruct-q4.gguf?download=true`
+  },
+  "phi3-fp16": {
+    url: url`https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/Phi-3-mini-4k-instruct-fp16.gguf?download=true`
   }
 };
 
@@ -28,10 +40,10 @@ async function ensureModelDirectory() {
 }
 
 export function getModelWrapper(model: string) {
-  if (!(model in MODELS)) {
-    err(`Model ${model} not found`);
+  if (model in MODELS) {
+    return MODELS[model].wrapper;
   }
-  return MODELS[model].wrapper;
+  return undefined;
 }
 
 export async function downloadModel(model: string) {
@@ -65,11 +77,11 @@ export async function downloadModel(model: string) {
 export const DEFAULT_MODEL = Object.keys(MODELS)[0];
 
 export function getModelPath(model: string) {
-  if (!(model in MODELS)) {
-    err(`Model ${model} not found`);
+  if (model in MODELS) {
+    const filename = basename(MODELS[model].url.pathname);
+    return `${MODEL_DIRECTORY}/${filename}`;
   }
-  const filename = basename(MODELS[model].url.pathname);
-  return `${MODEL_DIRECTORY}/${filename}`;
+  return model;
 }
 
 export function getEnsuredModelPath(model: string) {
