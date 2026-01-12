@@ -18,6 +18,7 @@ export function localRenameWithCheckpoint(
   let registry: RenameRegistry | undefined;
 
   const plugin = async (code: string): Promise<string> => {
+    const startTime = Date.now();
     const filename = await defineFilename(
       prompt,
       code.slice(0, PADDING_CHARS * 2)
@@ -34,8 +35,8 @@ export function localRenameWithCheckpoint(
         }
       },
       contextWindowSize,
-      showPercentage,
-      { checkpointManager, saveInterval: 10, registry }
+      (p, c, t) => showPercentage(p, c, t, "Rename ", "green", startTime),
+      { checkpointManager, registry }
     );
   };
 

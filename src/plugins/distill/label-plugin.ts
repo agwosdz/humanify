@@ -23,6 +23,7 @@ export async function labelIdentifiers(
     const scopes = findScopes(ast);
     const total = scopes.length;
 
+    const startTime = Date.now();
     for (let i = 0; i < total; i++) {
         const path = scopes[i];
         const name = path.node.name;
@@ -41,8 +42,9 @@ export async function labelIdentifiers(
             verbose.log(`Failed to parse distillation result for ${name}: ${result}`);
         }
 
-        showPercentage(i / total, i, total);
+        showPercentage(i / total, i, total, "Distill", "cyan", startTime);
     }
+    showPercentage(1, total, total, "Distill", "cyan", startTime);
 
     const result = await transformFromAstAsync(ast);
     return result?.code ?? code;

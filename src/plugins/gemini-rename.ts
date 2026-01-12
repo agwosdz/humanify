@@ -21,32 +21,28 @@ export function geminiRename({
   const client = new GoogleGenerativeAI(apiKey);
   let registry: RenameRegistry | undefined;
 
-  const geminiRenamePlugin = async (code: string): Promise<string> => {
+  const startTime = Date.now();
+  const plugin = async (code: string): Promise<string> => {
     return await visitAllIdentifiers(
       code,
       async (name, surroundingCode) => {
         verbose.log(`Renaming ${name}`);
         verbose.log("Context: ", surroundingCode);
 
-        const model = client.getGenerativeModel(
-          toRenameParams(name, modelName)
+        const model = client.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(
+          toRenamePrompt(name, surroundingCode)
         );
-
-        const result = await model.generateContent(surroundingCode);
-
-        const renamed = JSON.parse(result.response.text()).newName;
-
-        verbose.log(`Renamed to ${renamed}`);
-
-        return renamed;
+        const response = result.response.text();
+        return parseSuggestions(response, name);
       },
       contextWindowSize,
-      showPercentage,
+      (p, c, t) => showPercentage(p, c, t, "Rename ", "green", startTime),
       registry
     );
   };
 
-  (geminiRenamePlugin as any).setRegistry = (r: RenameRegistry) => {
+  (plugin as any).setRegistry = (r: RenameRegistry) => {
     registry = r;
   };
 

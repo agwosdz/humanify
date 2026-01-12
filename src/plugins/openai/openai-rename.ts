@@ -20,6 +20,7 @@ export function openaiRename({
   let registry: RenameRegistry | undefined;
 
   const openaiRenamePlugin = async (code: string): Promise<string> => {
+    const startTime = Date.now();
     return await visitAllIdentifiers(
       code,
       async (name, surroundingCode) => {
@@ -40,7 +41,7 @@ export function openaiRename({
         return renamed;
       },
       contextWindowSize,
-      showPercentage,
+      (p, c, t) => showPercentage(p, c, t, "Rename ", "green", startTime),
       registry
     );
   };

@@ -10,6 +10,11 @@ import { parseNumber } from "../number-utils.js";
 import { DEFAULT_CONTEXT_WINDOW_SIZE } from "./default-args.js";
 import { glob } from "tinyglobby";
 import { err } from "../cli-error.js";
+import path from "path";
+import { CheckpointManager } from "../checkpoint.js";
+import { openaiRenameWithCheckpoint } from "../plugins/openai/openai-rename-with-checkpoint.js";
+import { findProjectRoot } from "../file-utils.js";
+import { logRunSummary } from "../verbose.js";
 
 export const openai = cli()
   .name("openai")
@@ -45,6 +50,10 @@ export const openai = cli()
 
     const normalizedInputs = inputs.map(i => i.replace(/\\/g, '/'));
     const files = await glob(normalizedInputs, { absolute: true });
+
+    const finalRegistryPath = opts.registry || path.join(findProjectRoot(process.cwd()), ".humanify-registry.json");
+    logRunSummary("OpenAI Rename", opts, finalRegistryPath);
+
     if (files.length === 0) {
       err("No files found matching the provided inputs.");
     }
@@ -60,22 +69,31 @@ export const openai = cli()
       contextWindowSize: number;
     }
 
-    const renamePlugin = openaiRename({
-      apiKey,
-      baseURL,
-      model: opts.model,
-      contextWindowSize
-    });
+    let renamePlugin;
+    if (opts.checkpoint) {
+      const checkpointManager = new CheckpointManager(opts.outputDir);
+      renamePlugin = openaiRenameWithCheckpoint({
+        apiKey,
+        baseURL,
+        model: opts.model,
+        contextWindowSize,
+        checkpointManager
+      });
+    } else {
+      renamePlugin = openaiRename({
+        apiKey,
+        baseURL,
+        model: opts.model,
+        contextWindowSize
+      });
+    }
 
-    // Store config for checkpoint-aware version
-    (renamePlugin as any).__config = {
-      apiKey,
-      baseURL,
-      model: opts.model,
-      contextWindowSize
-    };
+    console.log(`\nFound ${files.length} file(s) to process.`);
 
-    for (const filename of files) {
+    for (let i = 0; i < files.length; i++) {
+      const filename = files[i];
+      console.log(`\n[${i + 1}/${files.length}] Processing: ${path.basename(filename)}`);
+
       if (opts.checkpoint || opts.resume) {
         await unminifyWithCheckpoint(filename, opts.outputDir, [
           babel,

@@ -84,8 +84,6 @@ export async function unminifyWithCheckpoint(
   }
 
   for (let i = startIndex; i < extractedFiles.length; i++) {
-    console.log(`Processing file ${i + 1}/${extractedFiles.length}`);
-
     const file = extractedFiles[i];
     let code = await fs.readFile(file.path, "utf-8");
 

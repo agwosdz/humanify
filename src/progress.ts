@@ -22,14 +22,42 @@ function formatBytes(numBytes: number) {
   return `${numBytes.toFixed(2)} ${units[unitIndex]}`;
 }
 
-export function showPercentage(percentage: number, current?: number, total?: number) {
-  const percentageStr = Math.round(percentage * 100);
-  let progressText: string;
+const COLORS = {
+  reset: "\x1b[0m",
+  green: "\x1b[32m",
+  cyan: "\x1b[36m",
+  yellow: "\x1b[33m",
+  dim: "\x1b[2m"
+};
 
+export function showPercentage(
+  percentage: number,
+  current?: number,
+  total?: number,
+  label: string = "Processing",
+  color: keyof typeof COLORS = "green",
+  startTime?: number
+) {
+  const percentageInt = Math.round(percentage * 100);
+  const width = 25;
+  const filled = Math.round(percentage * width);
+  const empty = width - filled;
+
+  const barColor = COLORS[color];
+  const bar = `${barColor}${"█".repeat(filled)}${COLORS.dim}${"░".repeat(Math.max(0, empty))}${COLORS.reset}`;
+
+  let etaStr = "";
+  if (startTime && current && total && current > 0) {
+    const elapsed = Date.now() - startTime;
+    const eta = (elapsed / current) * (total - current);
+    etaStr = ` | ETA: ${formatDuration(eta)}`;
+  }
+
+  let progressText: string;
   if (current !== undefined && total !== undefined) {
-    progressText = `Processing: ${current}/${total}`;
+    progressText = `${label}: [${bar}] ${percentageInt}% (${current}/${total})${etaStr}`;
   } else {
-    progressText = `Processing: ${percentageStr}%`;
+    progressText = `${label}: [${bar}] ${percentageInt}%${etaStr}`;
   }
 
   if (!verbose.enabled) {
@@ -43,7 +71,18 @@ export function showPercentage(percentage: number, current?: number, total?: num
   } else {
     verbose.log(progressText);
   }
+
   if ((current !== undefined && total !== undefined && current === total) || percentage === 1) {
     process.stdout.write("\n");
   }
+}
+
+function formatDuration(ms: number) {
+  if (ms < 0) return "0s";
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  if (minutes > 0) {
+    return `${minutes}m ${seconds % 60}s`;
+  }
+  return `${seconds}s`;
 }

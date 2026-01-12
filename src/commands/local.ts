@@ -6,11 +6,15 @@ import { unminifyWithCheckpoint } from "../unminify-with-checkpoint.js";
 import prettier from "../plugins/prettier.js";
 import babel from "../plugins/babel/babel.js";
 import { localReanme } from "../plugins/local-llm-rename/local-llm-rename.js";
-import { verbose } from "../verbose.js";
+import { verbose, logRunSummary } from "../verbose.js";
 import { DEFAULT_CONTEXT_WINDOW_SIZE } from "./default-args.js";
 import { parseNumber } from "../number-utils.js";
 import { glob } from "tinyglobby";
 import { err } from "../cli-error.js";
+import path from "path";
+import { CheckpointManager } from "../checkpoint.js";
+import { localRenameWithCheckpoint } from "../plugins/local-llm-rename/local-llm-rename-with-checkpoint.js";
+import { findProjectRoot } from "../file-utils.js";
 
 export const local = cli()
   .name("local")
@@ -45,10 +49,12 @@ export const local = cli()
       verbose.enabled = true;
     }
 
-    verbose.log("Starting local inference with options: ", opts);
-
     const normalizedInputs = inputs.map(i => i.replace(/\\/g, '/'));
     const files = await glob(normalizedInputs, { absolute: true });
+
+    const finalRegistryPath = opts.registry || path.join(findProjectRoot(process.cwd()), ".humanify-registry.json");
+    logRunSummary("Local LLM Rename", opts, finalRegistryPath);
+
     if (files.length === 0) {
       err("No files found matching the provided inputs.");
     }
@@ -82,7 +88,12 @@ export const local = cli()
       contextWindowSize
     };
 
-    for (const filename of files) {
+    console.log(`\nFound ${files.length} file(s) to process.`);
+
+    for (let i = 0; i < files.length; i++) {
+      const filename = files[i];
+      console.log(`\n[${i + 1}/${files.length}] Processing: ${path.basename(filename)}`);
+
       if (opts.checkpoint || opts.resume) {
         await unminifyWithCheckpoint(filename, opts.outputDir, [
           babel,

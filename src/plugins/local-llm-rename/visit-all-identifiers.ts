@@ -16,7 +16,7 @@ export async function visitAllIdentifiers(
   code: string,
   visitor: Visitor,
   contextWindowSize: number,
-  onProgress?: (percentageDone: number) => void,
+  onProgress?: (percentageDone: number, current?: number, total?: number) => void,
   registry?: RenameRegistry
 ) {
   const ast = await parseAsync(code, {

@@ -23,7 +23,7 @@ export async function visitAllIdentifiersWithCheckpoint(
   code: string,
   visitor: Visitor,
   contextWindowSize: number,
-  onProgress?: (percentageDone: number) => void,
+  onProgress?: (percentageDone: number, current?: number, total?: number) => void,
   options?: VisitOptions
 ) {
   const { checkpointManager, saveInterval = 10 } = options || {};
@@ -125,7 +125,7 @@ export async function visitAllIdentifiersWithCheckpoint(
       processedIdentifiers.add(smallestScopeNode.name);
       processedCount++;
 
-      onProgress?.(processedCount / numRenamesExpected);
+      onProgress?.(processedCount / numRenamesExpected, processedCount, numRenamesExpected);
 
       // Save checkpoint after every few identifiers (lightweight - no code)
       if (checkpointManager && processedCount % 5 === 0) {
@@ -174,7 +174,7 @@ export async function visitAllIdentifiers(
   code: string,
   visitor: Visitor,
   contextWindowSize: number,
-  onProgress?: (percentageDone: number) => void
+  onProgress?: (percentageDone: number, current?: number, total?: number) => void
 ) {
   return visitAllIdentifiersWithCheckpoint(
     code,

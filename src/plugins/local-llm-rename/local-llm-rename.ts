@@ -12,6 +12,7 @@ export const localReanme = (prompt: Prompt, contextWindowSize: number) => {
   let registry: RenameRegistry | undefined;
 
   const localRenamePlugin = async (code: string): Promise<string> => {
+    const startTime = Date.now();
     const filename = await defineFilename(
       prompt,
       code.slice(0, PADDING_CHARS * 2)
@@ -22,7 +23,7 @@ export const localReanme = (prompt: Prompt, contextWindowSize: number) => {
       (name, surroundingCode) =>
         unminifyVariableName(prompt, name, filename, surroundingCode),
       contextWindowSize,
-      showPercentage,
+      (p, c, t) => showPercentage(p, c, t, "Rename ", "green", startTime),
       registry
     );
   };

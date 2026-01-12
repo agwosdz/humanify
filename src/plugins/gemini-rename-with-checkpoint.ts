@@ -14,6 +14,7 @@ export function geminiRenameWithCheckpoint({
   const client = new GoogleGenerativeAI(apiKey);
   let registry: RenameRegistry | undefined;
 
+  const startTime = Date.now();
   const plugin = async (code: string): Promise<string> => {
     return await visitAllIdentifiersWithCheckpoint(
       code,
@@ -22,28 +23,22 @@ export function geminiRenameWithCheckpoint({
         verbose.log("Context: ", surroundingCode);
 
         try {
-          const model = client.getGenerativeModel(
-            toRenameParams(name, modelName)
+          const model = client.getGenerativeModel({ model: modelName });
+          const result = await model.generateContent(
+            toRenamePrompt(name, surroundingCode)
           );
+          const response = result.response.text();
 
-          const result = await model.generateContent(surroundingCode);
-
-          const renamed = JSON.parse(result.response.text()).newName;
-
-          verbose.log(`Renamed to ${renamed}`);
-
+          const renamed = parseSuggestions(response, name);
           return renamed;
-        } catch (error) {
-          // On API error, save checkpoint
-          if (checkpointManager) {
-            verbose.log("API error occurred, checkpoint will be saved");
-          }
-          throw error;
+        } catch (e) {
+          verbose.log(`Gemini rename failed for ${name}:`, e);
+          return name;
         }
       },
       contextWindowSize,
-      showPercentage,
-      { checkpointManager, saveInterval: 5, registry } // Save every 5 identifiers
+      (p, c, t) => showPercentage(p, c, t, "Rename ", "green", startTime),
+      { checkpointManager, registry }
     );
   };
 
