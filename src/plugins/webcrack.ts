@@ -25,17 +25,15 @@ export async function webcrack(
   await cracked.save(outputDir);
 
   if (originalFilename) {
-    const outputFiles = await fs.readdir(outputDir);
-    const jsFiles = outputFiles.filter((file) => file.endsWith(".js"));
+    const sourcePath = path.join(outputDir, "deobfuscated.js");
 
-    if (jsFiles.length === 1 && jsFiles[0] === "deobfuscated.js") {
+    if (existsSync(sourcePath)) {
       const inputBaseName = path.basename(
         originalFilename,
         path.extname(originalFilename)
       );
       const newName = `${inputBaseName}.deobfuscated.js`;
       const targetPath = path.join(outputDir, newName);
-      const sourcePath = path.join(outputDir, "deobfuscated.js");
 
       await backupFile(targetPath);
       await fs.rename(sourcePath, targetPath);
