@@ -7,24 +7,20 @@ export class RenameRegistry {
     private usedNames: Set<string> = new Set();
     private registryPath: string;
 
-    constructor(outputDir: string, explicitRegistryPath?: string) {
-        if (explicitRegistryPath) {
-            this.registryPath = explicitRegistryPath;
-        } else {
-            // Default behavior: Look in project root, fallback to outputDir
-            try {
-                const { findProjectRoot } = require("./file-utils.js");
-                const projectRoot = findProjectRoot(process.cwd());
-                this.registryPath = path.join(projectRoot, ".humanify-registry.json");
-            } catch (e) {
-                this.registryPath = path.join(outputDir, ".humanify-registry.json");
-            }
-        }
+    constructor(registryPath: string) {
+        this.registryPath = registryPath;
     }
 
     async load() {
         if (existsSync(this.registryPath)) {
             try {
+                const stats = await fs.stat(this.registryPath);
+                if (stats.isDirectory()) {
+                    // If it's a directory, we should probably look for the file inside it
+                    this.registryPath = path.join(this.registryPath, ".humanify-registry.json");
+                    if (!existsSync(this.registryPath)) return;
+                }
+
                 const data = await fs.readFile(this.registryPath, "utf-8");
                 const json = JSON.parse(data);
 

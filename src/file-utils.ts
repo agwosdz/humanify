@@ -1,3 +1,4 @@
+import path from "path";
 import { existsSync } from "fs";
 import fs from "fs/promises";
 import { err } from "./cli-error.js";
@@ -28,8 +29,6 @@ export async function rmWithRetry(dirPath: string, retries = 5, delay = 500) {
     }
   }
 }
-
-import path from "path";
 
 export function findProjectRoot(startDir: string): string {
   let currentDir = path.resolve(startDir);

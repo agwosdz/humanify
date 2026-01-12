@@ -3,9 +3,14 @@
     [
       "x",
       "initialValue"
+    ],
+    [
+      "a",
+      "_initialValue"
     ]
   ],
   "usedNames": [
-    "initialValue"
+    "initialValue",
+    "_initialValue"
   ]
 }

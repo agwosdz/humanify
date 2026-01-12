@@ -38,7 +38,11 @@ export async function unminifyWithCheckpoint(
     return;
   }
 
-  const registry = new RenameRegistry(outputDir, options.registryPath);
+  const { findProjectRoot } = await import("./file-utils.js");
+  const defaultRegistryPath = path.join(findProjectRoot(process.cwd()), ".humanify-registry.json");
+  const finalRegistryPath = options.registryPath || defaultRegistryPath;
+
+  const registry = new RenameRegistry(finalRegistryPath);
   await registry.load();
 
   const checkpointManager = enableCheckpoint

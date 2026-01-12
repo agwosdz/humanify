@@ -33,7 +33,11 @@ export async function unminify(
     return;
   }
 
-  const registry = new RenameRegistry(outputDir, registryPath);
+  const { findProjectRoot } = await import("./file-utils.js");
+  const defaultRegistryPath = path.join(findProjectRoot(process.cwd()), ".humanify-registry.json");
+  const finalRegistryPath = registryPath || defaultRegistryPath;
+
+  const registry = new RenameRegistry(finalRegistryPath);
   await registry.load();
 
   const bundledCode = await fs.readFile(filename, "utf-8");
