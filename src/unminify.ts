@@ -87,13 +87,13 @@ export async function unminify(
     const finalName = path.basename(file.path);
     const targetPath = path.join(outputDir, finalName);
 
+    await backupFile(targetPath);
+    await fs.writeFile(targetPath, formattedCode);
+
     if (enableVerify) {
       const { verify } = await import("./verify.js");
       await verify(file.path, targetPath);
     }
-
-    await backupFile(targetPath);
-    await fs.writeFile(targetPath, formattedCode);
   }
 
   await rmWithRetry(workspaceDir);

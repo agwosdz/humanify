@@ -180,12 +180,7 @@ export async function unminifyWithCheckpoint(
       const finalName = path.basename(file.path);
       const targetPath = path.join(outputDir, finalName);
 
-      if (options.enableVerify) {
-        const { verify } = await import("./verify.js");
-        await verify(file.path, targetPath);
-      }
-
-      // We use existsSync from 'fs' which is already imported in some versions, 
+      // We use existsSync from 'fs' which is already imported in some versions,
       // but let's make sure it works. I'll add the backup logic here.
       if (existsSync(targetPath)) {
         const backupPath = `${targetPath}.old`;
@@ -194,6 +189,11 @@ export async function unminifyWithCheckpoint(
       }
 
       await fs.writeFile(targetPath, formattedCode);
+
+      if (options.enableVerify) {
+        const { verify } = await import("./verify.js");
+        await verify(file.path, targetPath);
+      }
 
       // Save checkpoint after each file
       if (checkpointManager) {
