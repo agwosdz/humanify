@@ -1,4 +1,5 @@
 import { transform, PluginItem } from "@babel/core";
+import jsx from "@babel/plugin-syntax-jsx";
 
 export const transformWithPlugins = async (
   code: string,
@@ -8,7 +9,7 @@ export const transformWithPlugins = async (
     transform(
       code,
       {
-        plugins: ["@babel/plugin-syntax-jsx", ...plugins],
+        plugins: [jsx, ...plugins],
         parserOpts: {
           sourceType: "unambiguous",
           allowImportExportEverywhere: true,

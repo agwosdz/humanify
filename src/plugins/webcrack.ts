@@ -12,6 +12,8 @@ export async function webcrack(
   originalFilename?: string
 ): Promise<File[]> {
   const cracked = await wc(code);
+  await fs.rm(outputDir, { recursive: true, force: true });
+  await fs.mkdir(outputDir, { recursive: true });
   await cracked.save(outputDir);
 
   if (originalFilename) {
