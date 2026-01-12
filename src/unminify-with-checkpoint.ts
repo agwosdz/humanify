@@ -13,6 +13,7 @@ interface UnminifyOptions {
   skipExisting?: boolean;
   enableDistill?: boolean;
   enableVerify?: boolean;
+  registryPath?: string;
 }
 
 export async function unminifyWithCheckpoint(
@@ -37,7 +38,7 @@ export async function unminifyWithCheckpoint(
     return;
   }
 
-  const registry = new RenameRegistry(outputDir);
+  const registry = new RenameRegistry(outputDir, options.registryPath);
   await registry.load();
 
   const checkpointManager = enableCheckpoint

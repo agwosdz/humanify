@@ -28,3 +28,16 @@ export async function rmWithRetry(dirPath: string, retries = 5, delay = 500) {
     }
   }
 }
+
+import path from "path";
+
+export function findProjectRoot(startDir: string): string {
+  let currentDir = path.resolve(startDir);
+  while (currentDir !== path.parse(currentDir).root) {
+    if (existsSync(path.join(currentDir, ".git")) || existsSync(path.join(currentDir, "package.json"))) {
+      return currentDir;
+    }
+    currentDir = path.dirname(currentDir);
+  }
+  return startDir;
+}

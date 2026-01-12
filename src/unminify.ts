@@ -20,7 +20,8 @@ export async function unminify(
   plugins: ((code: string) => Promise<string>)[] = [],
   skipExisting = false,
   enableDistill = false,
-  enableVerify = false
+  enableVerify = false,
+  registryPath?: string
 ) {
   ensureFileExists(filename);
 
@@ -32,7 +33,7 @@ export async function unminify(
     return;
   }
 
-  const registry = new RenameRegistry(outputDir);
+  const registry = new RenameRegistry(outputDir, registryPath);
   await registry.load();
 
   const bundledCode = await fs.readFile(filename, "utf-8");
