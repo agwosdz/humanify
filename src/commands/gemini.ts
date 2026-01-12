@@ -26,6 +26,7 @@ export const azure = cli()
   .option("--verbose", "Show verbose output")
   .option("--checkpoint", "Enable checkpoint saving", false)
   .option("--resume", "Resume from last checkpoint", false)
+  .option("-S, --skipExisting", "Skip processing if the deobfuscated file already exists", false)
   .argument("input", "The input minified Javascript file")
   .action(async (filename, opts) => {
     if (opts.verbose) {
@@ -55,13 +56,14 @@ export const azure = cli()
         prettier
       ], {
         enableCheckpoint: true,
-        resumeFromCheckpoint: opts.resume
+        resumeFromCheckpoint: opts.resume,
+        skipExisting: opts.skipExisting
       });
     } else {
       await unminify(filename, opts.outputDir, [
         babel,
         renamePlugin,
         prettier
-      ]);
+      ], opts.skipExisting);
     }
   });

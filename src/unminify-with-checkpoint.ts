@@ -9,6 +9,7 @@ import { CheckpointManager } from "./checkpoint.js";
 interface UnminifyOptions {
   enableCheckpoint?: boolean;
   resumeFromCheckpoint?: boolean;
+  skipExisting?: boolean;
 }
 
 export async function unminifyWithCheckpoint(
@@ -17,9 +18,21 @@ export async function unminifyWithCheckpoint(
   plugins: ((code: string) => Promise<string>)[] = [],
   options: UnminifyOptions = {}
 ) {
-  const { enableCheckpoint = true, resumeFromCheckpoint = false } = options;
+  const {
+    enableCheckpoint = true,
+    resumeFromCheckpoint = false,
+    skipExisting = false
+  } = options;
 
   ensureFileExists(filename);
+
+  const inputBaseName = path.basename(filename, path.extname(filename));
+  const expectedOutput = path.join(outputDir, `${inputBaseName}.deobfuscated.js`);
+
+  if (skipExisting && existsSync(expectedOutput)) {
+    console.log(`Skipping ${filename} because ${expectedOutput} already exists.`);
+    return;
+  }
 
   const checkpointManager = enableCheckpoint
     ? new CheckpointManager(outputDir)

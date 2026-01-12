@@ -16,9 +16,19 @@ async function backupFile(filePath: string) {
 export async function unminify(
   filename: string,
   outputDir: string,
-  plugins: ((code: string) => Promise<string>)[] = []
+  plugins: ((code: string) => Promise<string>)[] = [],
+  skipExisting = false
 ) {
   ensureFileExists(filename);
+
+  const inputBaseName = path.basename(filename, path.extname(filename));
+  const expectedOutput = path.join(outputDir, `${inputBaseName}.deobfuscated.js`);
+
+  if (skipExisting && existsSync(expectedOutput)) {
+    console.log(`Skipping ${filename} because ${expectedOutput} already exists.`);
+    return;
+  }
+
   const bundledCode = await fs.readFile(filename, "utf-8");
 
   const workspaceDir = path.join(outputDir, ".humanify-work");

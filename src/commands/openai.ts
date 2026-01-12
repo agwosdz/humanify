@@ -31,6 +31,7 @@ export const openai = cli()
   )
   .option("--checkpoint", "Enable checkpoint saving", false)
   .option("--resume", "Resume from last checkpoint", false)
+  .option("-S, --skipExisting", "Skip processing if the deobfuscated file already exists", false)
   .argument("input", "The input minified Javascript file")
   .action(async (filename, opts) => {
     if (opts.verbose) {
@@ -53,10 +54,10 @@ export const openai = cli()
       baseURL,
       model: opts.model,
       contextWindowSize
-    }) as { config?: PluginConfig };
+    });
 
     // Store config for checkpoint-aware version
-    renamePlugin.config = {
+    (renamePlugin as any).__config = {
       apiKey,
       baseURL,
       model: opts.model,
@@ -70,13 +71,14 @@ export const openai = cli()
         prettier
       ], {
         enableCheckpoint: true,
-        resumeFromCheckpoint: opts.resume
+        resumeFromCheckpoint: opts.resume,
+        skipExisting: opts.skipExisting
       });
     } else {
       await unminify(filename, opts.outputDir, [
         babel,
         renamePlugin,
         prettier
-      ]);
+      ], opts.skipExisting);
     }
   });
