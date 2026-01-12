@@ -54,12 +54,12 @@ export async function llama(opts: {
   if (opts?.seed !== undefined) {
     contextOpts.seed = opts.seed;
   }
-  const context = await model.createContext(contextOpts as any);
+  let context = await model.createContext(contextOpts as any);
 
-  const promptFn: Prompt = async (systemPrompt, userPrompt, responseGrammar) => {
+  const promptFn: any = async (systemPrompt: string, userPrompt: string, responseGrammar: any) => {
     const session = new LlamaChatSession({
       contextSequence: context.getSequence(),
-      autoDisposeSequence: false, // We manage sequence disposal via context
+      autoDisposeSequence: true, // Crucial: Fixes sequence leak
       systemPrompt,
       chatWrapper: getModelWrapper(opts.model)
     });
@@ -74,9 +74,15 @@ export async function llama(opts: {
     return responseGrammar.parseResult(response.responseText);
   };
 
-  (promptFn as any).dispose = async () => {
+  promptFn.dispose = async () => {
     await context.dispose();
   };
 
-  return promptFn;
+  promptFn.reset = async () => {
+    verbose.log("Resetting LLM context for fresh start...");
+    await context.dispose();
+    context = await model.createContext(contextOpts as any);
+  };
+
+  return promptFn as Prompt;
 }

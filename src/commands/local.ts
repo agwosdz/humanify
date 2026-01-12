@@ -117,6 +117,10 @@ export const local = cli()
       const filename = files[i];
       console.log(`\n[${i + 1}/${files.length}] Processing: ${path.basename(filename)}`);
 
+      if ((prompt as any).reset) {
+        await (prompt as any).reset();
+      }
+
       try {
         const code = readFileSync(filename, "utf-8");
         const count = await countIdentifiers(code);
