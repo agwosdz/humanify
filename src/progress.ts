@@ -64,7 +64,13 @@ export function showPercentage(
   }
 
   if (!verbose.enabled) {
-    process.stdout.write(`\r${COLORS.reset}${progressText}`);
+    if (process.stdout.clearLine && process.stdout.cursorTo) {
+      process.stdout.clearLine(0);
+      process.stdout.cursorTo(0);
+      process.stdout.write(progressText);
+    } else {
+      process.stdout.write(`\r${COLORS.reset}${progressText}\x1b[K`);
+    }
   } else {
     verbose.log(progressText);
   }

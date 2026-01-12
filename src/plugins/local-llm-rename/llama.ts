@@ -56,10 +56,10 @@ export async function llama(opts: {
   }
   const context = await model.createContext(contextOpts as any);
 
-  return async (systemPrompt, userPrompt, responseGrammar) => {
+  const promptFn: Prompt = async (systemPrompt, userPrompt, responseGrammar) => {
     const session = new LlamaChatSession({
       contextSequence: context.getSequence(),
-      autoDisposeSequence: true,
+      autoDisposeSequence: false, // We manage sequence disposal via context
       systemPrompt,
       chatWrapper: getModelWrapper(opts.model)
     });
@@ -73,4 +73,10 @@ export async function llama(opts: {
     session.dispose();
     return responseGrammar.parseResult(response.responseText);
   };
+
+  (promptFn as any).dispose = async () => {
+    await context.dispose();
+  };
+
+  return promptFn;
 }

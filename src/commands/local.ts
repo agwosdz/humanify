@@ -169,4 +169,8 @@ export const local = cli()
     }
 
     await reportManager.saveReport(opts.outputDir);
+
+    if ((prompt as any).dispose) {
+      await (prompt as any).dispose();
+    }
   });
