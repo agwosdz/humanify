@@ -1,6 +1,6 @@
 {
   "name": "humanifyjs",
-  "version": "2.2.5dev",
+  "version": "2.2.6dev",
   "description": "",
   "main": "dist/index.mjs",
   "scripts": {
