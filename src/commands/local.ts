@@ -22,7 +22,11 @@ export const local = cli()
     "-s, --seed <seed>",
     "Seed for the model to get reproduceable results (leave out for random seed)"
   )
-  .option("--disableGpu", "Disable GPU acceleration")
+  .option("--disableGpu", "Disable GPU acceleration", false)
+  .option("--gpu <backend>", "Force specific GPU backend (auto, cuda, vulkan, metal, cpu)", "auto")
+  .option("--gpuLayers <n>", "Number of layers to offload to GPU", parseInt)
+  .option("--flashAttention", "Enable Flash Attention", false)
+  .option("--threads <n>", "Number of threads for CPU operations", parseInt)
   .option("--verbose", "Show verbose output")
   .option(
     "--contextSize <contextSize>",
@@ -49,14 +53,28 @@ export const local = cli()
       err("No files found matching the provided inputs.");
     }
 
-    const contextWindowSize = parseNumber(opts.contextSize);
+    const contextWindowSize = parseInt(opts.contextSize);
     const prompt = await llama({
+      seed: opts.seed ? parseInt(opts.seed) : undefined,
       model: opts.model,
       disableGpu: opts.disableGpu,
-      seed: opts.seed ? parseInt(opts.seed) : undefined
+      gpu: opts.gpu,
+      gpuLayers: opts.gpuLayers,
+      flashAttention: opts.flashAttention,
+      threads: opts.threads
     });
 
-    const renamePlugin = localReanme(prompt, contextWindowSize);
+    let renamePlugin;
+    if (opts.checkpoint) {
+      const checkpointManager = new CheckpointManager(opts.outputDir);
+      renamePlugin = localRenameWithCheckpoint(
+        prompt,
+        contextWindowSize,
+        checkpointManager
+      );
+    } else {
+      renamePlugin = localReanme(prompt, contextWindowSize);
+    }
 
     // Store config for checkpoint-aware version
     (renamePlugin as any).__config = {
