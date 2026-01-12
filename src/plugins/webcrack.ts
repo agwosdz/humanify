@@ -7,14 +7,6 @@ type File = {
   path: string;
 };
 
-async function backupFile(filePath: string) {
-  if (existsSync(filePath)) {
-    const backupPath = `${filePath}.old`;
-    await fs.rm(backupPath, { force: true });
-    await fs.rename(filePath, backupPath);
-  }
-}
-
 export async function webcrack(
   code: string,
   outputDir: string,
@@ -35,13 +27,12 @@ export async function webcrack(
       const newName = `${inputBaseName}.deobfuscated.js`;
       const targetPath = path.join(outputDir, newName);
 
-      await backupFile(targetPath);
       await fs.rename(sourcePath, targetPath);
     }
   }
 
   const output = await fs.readdir(outputDir);
   return output
-    .filter((file) => file.endsWith(".js") && !file.endsWith(".old"))
+    .filter((file) => file.endsWith(".js"))
     .map((file) => ({ path: path.join(outputDir, file) }));
 }

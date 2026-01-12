@@ -13,7 +13,7 @@ export const azure = cli()
   .name("gemini")
   .description("Use Google Gemini/AIStudio API to unminify code")
   .option("-m, --model <model>", "The model to use", "gemini-1.5-flash")
-  .option("-o, --outputDir <output>", "The output directory", "output")
+  .option("-o, --outputDir <output>", "The output directory", "deobfuscated")
   .option(
     "--contextSize <contextSize>",
     "The context size to use for the LLM",
@@ -34,20 +34,20 @@ export const azure = cli()
 
     const apiKey = opts.apiKey ?? env("GEMINI_API_KEY");
     const contextWindowSize = parseNumber(opts.contextSize);
-    
-    const renamePlugin = geminiRename({ 
-      apiKey, 
-      model: opts.model, 
-      contextWindowSize 
+
+    const renamePlugin = geminiRename({
+      apiKey,
+      model: opts.model,
+      contextWindowSize
     });
-    
+
     // Store config for checkpoint-aware version
     (renamePlugin as any).__config = {
       apiKey,
       model: opts.model,
       contextWindowSize
     };
-    
+
     if (opts.checkpoint || opts.resume) {
       await unminifyWithCheckpoint(filename, opts.outputDir, [
         babel,

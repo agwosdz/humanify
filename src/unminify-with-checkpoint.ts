@@ -3,6 +3,7 @@ import path from "path";
 import { ensureFileExists } from "./file-utils.js";
 import { webcrack } from "./plugins/webcrack.js";
 import { verbose } from "./verbose.js";
+import { existsSync } from "fs";
 import { CheckpointManager } from "./checkpoint.js";
 
 interface UnminifyOptions {
@@ -39,7 +40,15 @@ export async function unminifyWithCheckpoint(
   }
 
   const bundledCode = await fs.readFile(filename, "utf-8");
-  const extractedFiles = await webcrack(bundledCode, outputDir, filename);
+
+  const workspaceDir = path.join(outputDir, ".humanify-work");
+  // Only recreate workspace if we are not resuming, or if it doesn't exist
+  if (!resumeFromCheckpoint || !existsSync(workspaceDir)) {
+    await fs.rm(workspaceDir, { recursive: true, force: true });
+    await fs.mkdir(workspaceDir, { recursive: true });
+  }
+
+  const extractedFiles = await webcrack(bundledCode, workspaceDir, filename);
 
   // Load checkpoint to determine where to start
   let startIndex = 0;
@@ -69,10 +78,10 @@ export async function unminifyWithCheckpoint(
             // If this is a rename plugin and checkpoint is enabled
             if (checkpointManager && (plugin as any).__config) {
               const pluginConfig = (plugin as any).__config;
-              console.log("Plugin name:", plugin.name, "Config:", !!pluginConfig);
+              console.log("Plugin name:", (plugin as any).name, "Config:", !!pluginConfig);
 
               // OpenAI plugin
-              if (plugin.name === 'openaiRename') {
+              if ((plugin as any).name === 'openaiRename') {
                 console.log("Using OpenAI rename with checkpoint");
                 const { openaiRenameWithCheckpoint } = await import("./plugins/openai/openai-rename-with-checkpoint.js");
                 const checkpointAwarePlugin = openaiRenameWithCheckpoint({
@@ -83,7 +92,7 @@ export async function unminifyWithCheckpoint(
               }
 
               // Gemini plugin
-              if (plugin.name === 'geminiRename') {
+              if ((plugin as any).name === 'geminiRename') {
                 const { geminiRenameWithCheckpoint } = await import("./plugins/gemini-rename-with-checkpoint.js");
                 const checkpointAwarePlugin = geminiRenameWithCheckpoint({
                   ...pluginConfig,
@@ -93,7 +102,7 @@ export async function unminifyWithCheckpoint(
               }
 
               // Local plugin
-              if (plugin.name === 'localReanme' || plugin.name === 'localRename') {
+              if ((plugin as any).name === 'localReanme' || (plugin as any).name === 'localRename') {
                 const { localRenameWithCheckpoint } = await import("./plugins/local-llm-rename/local-llm-rename-with-checkpoint.js");
                 const checkpointAwarePlugin = localRenameWithCheckpoint(
                   pluginConfig.prompt,
@@ -113,8 +122,7 @@ export async function unminifyWithCheckpoint(
                 renames: new Map(),
                 currentFileIndex: i,
                 currentIdentifierIndex: 0,
-                timestamp: Date.now(),
-                code: currentCode
+                timestamp: Date.now()
               });
             }
             throw error;
@@ -130,7 +138,18 @@ export async function unminifyWithCheckpoint(
       verbose.log("Input: ", code);
       verbose.log("Output: ", formattedCode);
 
-      await fs.writeFile(file.path, formattedCode);
+      const finalName = path.basename(file.path);
+      const targetPath = path.join(outputDir, finalName);
+
+      // We use existsSync from 'fs' which is already imported in some versions, 
+      // but let's make sure it works. I'll add the backup logic here.
+      if (existsSync(targetPath)) {
+        const backupPath = `${targetPath}.old`;
+        await fs.rm(backupPath, { force: true });
+        await fs.rename(targetPath, backupPath);
+      }
+
+      await fs.writeFile(targetPath, formattedCode);
 
       // Save checkpoint after each file
       if (checkpointManager) {
@@ -148,6 +167,8 @@ export async function unminifyWithCheckpoint(
       throw error;
     }
   }
+
+  await fs.rm(workspaceDir, { recursive: true, force: true });
 
   // Clear checkpoint on successful completion
   if (checkpointManager) {

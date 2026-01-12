@@ -15,7 +15,7 @@ export const local = cli()
   .description("Use a local LLM to unminify code")
   .showHelpAfterError(true)
   .option("-m, --model <model>", "The model to use", DEFAULT_MODEL)
-  .option("-o, --outputDir <output>", "The output directory", "output")
+  .option("-o, --outputDir <output>", "The output directory", "deobfuscated")
   .option(
     "-s, --seed <seed>",
     "Seed for the model to get reproduceable results (leave out for random seed)"
@@ -43,15 +43,15 @@ export const local = cli()
       disableGpu: opts.disableGpu,
       seed: opts.seed ? parseInt(opts.seed) : undefined
     });
-    
+
     const renamePlugin = localReanme(prompt, contextWindowSize);
-    
+
     // Store config for checkpoint-aware version
     (renamePlugin as any).__config = {
       prompt,
       contextWindowSize
     };
-    
+
     if (opts.checkpoint || opts.resume) {
       await unminifyWithCheckpoint(filename, opts.outputDir, [
         babel,

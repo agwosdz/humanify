@@ -13,7 +13,7 @@ export const openai = cli()
   .name("openai")
   .description("Use OpenAI's API to unminify code")
   .option("-m, --model <model>", "The model to use", "gpt-4o-mini")
-  .option("-o, --outputDir <output>", "The output directory", "output")
+  .option("-o, --outputDir <output>", "The output directory", "deobfuscated")
   .option(
     "-k, --apiKey <apiKey>",
     "The OpenAI API key. Alternatively use OPENAI_API_KEY environment variable"
@@ -40,7 +40,7 @@ export const openai = cli()
     const apiKey = opts.apiKey ?? env("OPENAI_API_KEY");
     const baseURL = opts.baseURL;
     const contextWindowSize = parseNumber(opts.contextSize);
-    
+
     interface PluginConfig {
       apiKey: string;
       baseURL: string;
@@ -62,7 +62,7 @@ export const openai = cli()
       model: opts.model,
       contextWindowSize
     };
-    
+
     if (opts.checkpoint || opts.resume) {
       await unminifyWithCheckpoint(filename, opts.outputDir, [
         babel,
