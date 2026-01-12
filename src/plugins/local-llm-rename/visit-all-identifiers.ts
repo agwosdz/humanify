@@ -8,15 +8,18 @@ const traverse: typeof babelTraverse.default.default = (
     : babelTraverse.default.default
 ) as any; // eslint-disable-line @typescript-eslint/no-explicit-any -- This hack is because pkgroll fucks up the import somehow
 
+import { RenameRegistry } from "../../registry.js";
+
 type Visitor = (name: string, scope: string) => Promise<string>;
 
 export async function visitAllIdentifiers(
   code: string,
   visitor: Visitor,
   contextWindowSize: number,
-  onProgress?: (percentageDone: number) => void
+  onProgress?: (percentageDone: number) => void,
+  registry?: RenameRegistry
 ) {
-  const ast = await parseAsync(code, { 
+  const ast = await parseAsync(code, {
     sourceType: "unambiguous",
     parserOpts: {
       plugins: ["jsx", "typescript"],
@@ -42,20 +45,33 @@ export async function visitAllIdentifiers(
       throw new Error("No identifiers found");
     }
 
-    const surroundingCode = await scopeToString(
-      smallestScope,
-      contextWindowSize
-    );
-    const renamed = await visitor(smallestScopeNode.name, surroundingCode);
+    const renamedFromRegistry = registry?.getSuggestedName(smallestScopeNode.name);
+    let renamed: string;
+
+    if (renamedFromRegistry) {
+      renamed = renamedFromRegistry;
+    } else {
+      const surroundingCode = await scopeToString(
+        smallestScope,
+        contextWindowSize
+      );
+      renamed = await visitor(smallestScopeNode.name, surroundingCode);
+    }
+
     if (renamed !== smallestScopeNode.name) {
       let safeRenamed = toIdentifier(renamed);
       while (
         renames.has(safeRenamed) ||
-        smallestScope.scope.hasBinding(safeRenamed)
+        smallestScope.scope.hasBinding(safeRenamed) ||
+        (registry && registry.isNameUsed(safeRenamed) && !renamedFromRegistry)
       ) {
         safeRenamed = `_${safeRenamed}`;
       }
       renames.add(safeRenamed);
+
+      if (!renamedFromRegistry && registry) {
+        registry.registerName(smallestScopeNode.name, safeRenamed);
+      }
 
       smallestScope.scope.rename(smallestScopeNode.name, safeRenamed);
     }

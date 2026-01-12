@@ -3,6 +3,7 @@ import * as babelTraverse from "@babel/traverse";
 import { Identifier, toIdentifier, Node } from "@babel/types";
 import { CheckpointManager } from "../../checkpoint.js";
 import { verbose } from "../../verbose.js";
+import { RenameRegistry } from "../../registry.js";
 
 const traverse: typeof babelTraverse.default = (
   typeof babelTraverse.default === "function"
@@ -15,6 +16,7 @@ type Visitor = (name: string, scope: string) => Promise<string>;
 interface VisitOptions {
   checkpointManager?: CheckpointManager;
   saveInterval?: number; // Save checkpoint every N identifiers
+  registry?: RenameRegistry;
 }
 
 export async function visitAllIdentifiersWithCheckpoint(
@@ -25,13 +27,13 @@ export async function visitAllIdentifiersWithCheckpoint(
   options?: VisitOptions
 ) {
   const { checkpointManager, saveInterval = 10 } = options || {};
-  
+
   // Load checkpoint if exists
   let checkpoint = null;
   let processedIdentifiers = new Set<string>();
   let renamesMap = new Map<string, string>();
   let startIndex = 0;
-  
+
   if (checkpointManager) {
     checkpoint = await checkpointManager.loadCheckpoint();
     if (checkpoint) {
@@ -41,7 +43,7 @@ export async function visitAllIdentifiersWithCheckpoint(
       verbose.log(`Resuming from checkpoint: ${startIndex} identifiers already processed`);
     }
   }
-  
+
   const ast = await parseAsync(code, { sourceType: "unambiguous" });
   const renames = new Set<string>(renamesMap.values());
   const visited = new Set<string>(processedIdentifiers);
@@ -52,7 +54,7 @@ export async function visitAllIdentifiersWithCheckpoint(
 
   const scopes = await findScopes(ast);
   const numRenamesExpected = scopes.length;
-  
+
   // Apply existing renames from checkpoint
   if (checkpoint && renamesMap.size > 0) {
     for (const [originalName, newName] of renamesMap.entries()) {
@@ -62,15 +64,15 @@ export async function visitAllIdentifiersWithCheckpoint(
       }
     }
   }
-  
+
   let processedCount = startIndex;
-  
+
   // Don't save initial checkpoint - wait for first rename
 
   try {
     for (let i = startIndex; i < scopes.length; i++) {
       const smallestScope = scopes[i];
-      
+
       if (hasVisited(smallestScope, visited)) continue;
 
       const smallestScopeNode = smallestScope.node;
@@ -78,25 +80,37 @@ export async function visitAllIdentifiersWithCheckpoint(
         throw new Error("No identifiers found");
       }
 
-      const surroundingCode = await scopeToString(
-        smallestScope,
-        contextWindowSize
-      );
-      
-      const renamed = await visitor(smallestScopeNode.name, surroundingCode);
-      
+      const renamedFromRegistry = options?.registry?.getSuggestedName(smallestScopeNode.name);
+      let renamed: string;
+
+      if (renamedFromRegistry) {
+        renamed = renamedFromRegistry;
+      } else {
+        const surroundingCode = await scopeToString(
+          smallestScope,
+          contextWindowSize
+        );
+        renamed = await visitor(smallestScopeNode.name, surroundingCode);
+      }
+
       if (renamed !== smallestScopeNode.name) {
         let safeRenamed = toIdentifier(renamed);
         while (
           renames.has(safeRenamed) ||
-          smallestScope.scope.hasBinding(safeRenamed)
+          smallestScope.scope.hasBinding(safeRenamed) ||
+          (options?.registry && options.registry.isNameUsed(safeRenamed) && !renamedFromRegistry)
         ) {
           safeRenamed = `_${safeRenamed}`;
         }
         renames.add(safeRenamed);
         renamesMap.set(smallestScopeNode.name, safeRenamed);
+
+        if (!renamedFromRegistry && options?.registry) {
+          options.registry.registerName(smallestScopeNode.name, safeRenamed);
+        }
+
         smallestScope.scope.rename(smallestScopeNode.name, safeRenamed);
-        
+
         // Save individual rename result immediately
         if (checkpointManager) {
           await checkpointManager.savePartialResults(`rename_${Date.now()}_${smallestScopeNode.name}`, {
@@ -106,13 +120,13 @@ export async function visitAllIdentifiersWithCheckpoint(
           });
         }
       }
-      
+
       markVisited(smallestScope, smallestScopeNode.name, visited);
       processedIdentifiers.add(smallestScopeNode.name);
       processedCount++;
 
       onProgress?.(processedCount / numRenamesExpected);
-      
+
       // Save checkpoint after every few identifiers (lightweight - no code)
       if (checkpointManager && processedCount % 5 === 0) {
         console.log(`Processed ${processedCount} identifiers, saving checkpoint...`);
@@ -146,12 +160,12 @@ export async function visitAllIdentifiersWithCheckpoint(
   if (stringified?.code == null) {
     throw new Error("Failed to stringify code");
   }
-  
+
   // Clear checkpoint on successful completion
   if (checkpointManager) {
     await checkpointManager.clearCheckpoint();
   }
-  
+
   return stringified.code;
 }
 

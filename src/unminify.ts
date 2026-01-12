@@ -4,6 +4,7 @@ import { existsSync } from "fs";
 import { ensureFileExists, rmWithRetry } from "./file-utils.js";
 import { webcrack } from "./plugins/webcrack.js";
 import { verbose } from "./verbose.js";
+import { RenameRegistry } from "./registry.js";
 
 async function backupFile(filePath: string) {
   if (existsSync(filePath)) {
@@ -17,7 +18,9 @@ export async function unminify(
   filename: string,
   outputDir: string,
   plugins: ((code: string) => Promise<string>)[] = [],
-  skipExisting = false
+  skipExisting = false,
+  enableDistill = false,
+  enableVerify = false
 ) {
   ensureFileExists(filename);
 
@@ -28,6 +31,9 @@ export async function unminify(
     console.log(`Skipping ${filename} because ${expectedOutput} already exists.`);
     return;
   }
+
+  const registry = new RenameRegistry(outputDir);
+  await registry.load();
 
   const bundledCode = await fs.readFile(filename, "utf-8");
 
@@ -48,9 +54,31 @@ export async function unminify(
       continue;
     }
 
+    let processedCode = code;
+    if (enableDistill) {
+      // Find the rename plugin to extract the visitor (visitor is internal to the plugin function unfortunately)
+      // Actually, I should probably pass a distillVisitor specifically.
+      // For now, I'll assume we use the first rename plugin's config if available.
+      const renamePlugin = plugins.find(p => (p as any).name === 'localRename' || (p as any).name === 'geminiRename' || (p as any).name === 'openaiRename');
+      if (renamePlugin && (renamePlugin as any).getVisitor) {
+        const { distill } = await import("./plugins/distill/distill.js");
+        processedCode = await distill(
+          code,
+          (renamePlugin as any).getVisitor(),
+          (renamePlugin as any).contextWindowSize || 800,
+          registry
+        );
+      }
+    }
+
     const formattedCode = await plugins.reduce(
-      (p, next) => p.then(next),
-      Promise.resolve(code)
+      (p, next) => p.then(code => {
+        if ((next as any).setRegistry) {
+          (next as any).setRegistry(registry);
+        }
+        return next(code);
+      }),
+      Promise.resolve(processedCode)
     );
 
     verbose.log("Input: ", code);
@@ -59,11 +87,17 @@ export async function unminify(
     const finalName = path.basename(file.path);
     const targetPath = path.join(outputDir, finalName);
 
+    if (enableVerify) {
+      const { verify } = await import("./verify.js");
+      await verify(file.path, targetPath);
+    }
+
     await backupFile(targetPath);
     await fs.writeFile(targetPath, formattedCode);
   }
 
   await rmWithRetry(workspaceDir);
+  await registry.save();
 
   console.log(`Done! You can find your unminified code in ${outputDir}`);
 }

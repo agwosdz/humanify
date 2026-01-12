@@ -7,6 +7,8 @@ import { visitAllIdentifiers } from "./visit-all-identifiers.js";
 const PADDING_CHARS = 200;
 
 export const localReanme = (prompt: Prompt, contextWindowSize: number) => {
+  let registry: RenameRegistry | undefined;
+
   const localRenamePlugin = async (code: string): Promise<string> => {
     const filename = await defineFilename(
       prompt,
@@ -18,12 +20,22 @@ export const localReanme = (prompt: Prompt, contextWindowSize: number) => {
       (name, surroundingCode) =>
         unminifyVariableName(prompt, name, filename, surroundingCode),
       contextWindowSize,
-      showPercentage
+      showPercentage,
+      registry
     );
   };
-  
+
+  (localRenamePlugin as any).setRegistry = (r: RenameRegistry) => {
+    registry = r;
+  };
+
+  (localRenamePlugin as any).getVisitor = () => (name: string, context: string, promptText: string) => {
+    return prompt(promptText, "{}", { parseResult: (r) => r });
+  };
+  (localRenamePlugin as any).contextWindowSize = contextWindowSize;
+
   // Set function name for identification
   Object.defineProperty(localRenamePlugin, 'name', { value: 'localRename' });
-  
+
   return localRenamePlugin;
 };

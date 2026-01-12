@@ -34,6 +34,8 @@ export const openai = cli()
   .option("--checkpoint", "Enable checkpoint saving", false)
   .option("--resume", "Resume from last checkpoint", false)
   .option("-S, --skipExisting", "Skip processing if the deobfuscated file already exists", false)
+  .option("--distill", "Enable iterative logic distillation (high quality but slower)", false)
+  .option("--verify", "Verify functional parity between original and unminified code", false)
   .argument("<inputs...>", "The input minified Javascript file(s) or glob patterns")
   .action(async (inputs: string[], opts) => {
     if (opts.verbose) {
@@ -81,14 +83,16 @@ export const openai = cli()
         ], {
           enableCheckpoint: true,
           resumeFromCheckpoint: opts.resume,
-          skipExisting: opts.skipExisting
+          skipExisting: opts.skipExisting,
+          enableDistill: opts.distill,
+          enableVerify: opts.verify
         });
       } else {
         await unminify(filename, opts.outputDir, [
           babel,
           renamePlugin,
           prettier
-        ], opts.skipExisting);
+        ], opts.skipExisting, opts.distill, opts.verify);
       }
     }
   });

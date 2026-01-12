@@ -3,6 +3,8 @@ import { visitAllIdentifiers } from "../local-llm-rename/visit-all-identifiers.j
 import { showPercentage } from "../../progress.js";
 import { verbose } from "../../verbose.js";
 
+import { RenameRegistry } from "../../registry.js";
+
 export function openaiRename({
   apiKey,
   baseURL,
@@ -15,12 +17,13 @@ export function openaiRename({
   contextWindowSize: number;
 }) {
   const client = new OpenAI({ apiKey, baseURL });
+  let registry: RenameRegistry | undefined;
 
   const openaiRenamePlugin = async (code: string): Promise<string> => {
     return await visitAllIdentifiers(
       code,
       async (name, surroundingCode) => {
-        verbose.log(`Renaming ${name}`);
+        verbose.log(`Renaming ${name} `);
         verbose.log("Context: ", surroundingCode);
 
         const response = await client.chat.completions.create(
@@ -32,18 +35,32 @@ export function openaiRename({
         }
         const renamed = JSON.parse(result).newName;
 
-        verbose.log(`Renamed to ${renamed}`);
+        verbose.log(`Renamed to ${renamed} `);
 
         return renamed;
       },
       contextWindowSize,
-      showPercentage
+      showPercentage,
+      registry
     );
   };
-  
+
+  (openaiRenamePlugin as any).setRegistry = (r: RenameRegistry) => {
+    registry = r;
+  };
+
+  (openaiRenamePlugin as any).getVisitor = () => async (name: string, context: string, prompt: string) => {
+    const response = await client.chat.completions.create({
+      model,
+      messages: [{ role: "user", content: prompt }]
+    });
+    return response.choices[0].message?.content || "";
+  };
+  (openaiRenamePlugin as any).contextWindowSize = contextWindowSize;
+
   // Set function name for identification
   Object.defineProperty(openaiRenamePlugin, 'name', { value: 'openaiRename' });
-  
+
   return openaiRenamePlugin;
 }
 
@@ -57,7 +74,7 @@ function toRenamePrompt(
     messages: [
       {
         role: "system",
-        content: `Rename Javascript variables/function \`${name}\` to have descriptive name based on their usage in the code."`
+        content: `Rename Javascript variables / function \`${name}\` to have descriptive name based on their usage in the code."`
       },
       {
         role: "user",

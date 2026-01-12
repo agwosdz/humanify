@@ -5,11 +5,14 @@ import { webcrack } from "./plugins/webcrack.js";
 import { verbose } from "./verbose.js";
 import { existsSync } from "fs";
 import { CheckpointManager } from "./checkpoint.js";
+import { RenameRegistry } from "./registry.js";
 
 interface UnminifyOptions {
   enableCheckpoint?: boolean;
   resumeFromCheckpoint?: boolean;
   skipExisting?: boolean;
+  enableDistill?: boolean;
+  enableVerify?: boolean;
 }
 
 export async function unminifyWithCheckpoint(
@@ -33,6 +36,9 @@ export async function unminifyWithCheckpoint(
     console.log(`Skipping ${filename} because ${expectedOutput} already exists.`);
     return;
   }
+
+  const registry = new RenameRegistry(outputDir);
+  await registry.load();
 
   const checkpointManager = enableCheckpoint
     ? new CheckpointManager(outputDir)
@@ -143,8 +149,28 @@ export async function unminifyWithCheckpoint(
         };
       });
 
+      let processedCode = code;
+      const { enableDistill } = options;
+      if (enableDistill) {
+        const renamePlugin = plugins.find(p => (p as any).name === 'localRename' || (p as any).name === 'geminiRename' || (p as any).name === 'openaiRename');
+        if (renamePlugin && (renamePlugin as any).getVisitor) {
+          const { distill } = await import("./plugins/distill/distill.js");
+          processedCode = await distill(
+            code,
+            (renamePlugin as any).getVisitor(),
+            (renamePlugin as any).contextWindowSize || 800,
+            registry
+          );
+        }
+      }
+
       const formattedCode = await pluginsWithCheckpoint.reduce(
-        (p, next) => p.then(next),
+        (p, next) => p.then(code => {
+          if ((next as any).setRegistry) {
+            (next as any).setRegistry(registry);
+          }
+          return next(code);
+        }),
         Promise.resolve(code)
       );
 
@@ -153,6 +179,11 @@ export async function unminifyWithCheckpoint(
 
       const finalName = path.basename(file.path);
       const targetPath = path.join(outputDir, finalName);
+
+      if (options.enableVerify) {
+        const { verify } = await import("./verify.js");
+        await verify(file.path, targetPath);
+      }
 
       // We use existsSync from 'fs' which is already imported in some versions, 
       // but let's make sure it works. I'll add the backup logic here.

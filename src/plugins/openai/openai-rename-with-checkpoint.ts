@@ -18,8 +18,9 @@ export function openaiRenameWithCheckpoint({
   checkpointManager?: CheckpointManager;
 }) {
   const client = new OpenAI({ apiKey, baseURL });
+  let registry: RenameRegistry | undefined;
 
-  return async (code: string): Promise<string> => {
+  const plugin = async (code: string): Promise<string> => {
     console.log("OpenAI rename with checkpoint started, checkpointManager:", !!checkpointManager);
     return await visitAllIdentifiersWithCheckpoint(
       code,
@@ -50,9 +51,15 @@ export function openaiRenameWithCheckpoint({
       },
       contextWindowSize,
       showPercentage,
-      { checkpointManager, saveInterval: 5 } // Save every 5 identifiers
+      { checkpointManager, saveInterval: 5, registry } // Save every 5 identifiers
     );
   };
+
+  (plugin as any).setRegistry = (r: RenameRegistry) => {
+    registry = r;
+  };
+
+  return plugin;
 }
 
 function toRenamePrompt(

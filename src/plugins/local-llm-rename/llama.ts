@@ -30,14 +30,14 @@ export async function llama(opts: {
   verbose.log("Loading model with options", modelOpts);
   const model = await llama.loadModel(modelOpts);
 
-  interface LlamaContextOptions {
+  interface LocalLlamaContextOptions {
     seed?: number;
   }
-  const contextOpts: LlamaContextOptions = {};
+  const contextOpts: LocalLlamaContextOptions = {};
   if (opts?.seed !== undefined) {
     contextOpts.seed = opts.seed;
   }
-  const context = await model.createContext(contextOpts);
+  const context = await model.createContext(contextOpts as any);
 
   return async (systemPrompt, userPrompt, responseGrammar) => {
     const session = new LlamaChatSession({

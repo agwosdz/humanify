@@ -1,12 +1,4 @@
-import { visitAllIdentifiersWithCheckpoint } from "./local-llm-rename/visit-all-identifiers-with-checkpoint.js";
-import { verbose } from "../verbose.js";
-import { showPercentage } from "../progress.js";
-import { CheckpointManager } from "../checkpoint.js";
-import {
-  GoogleGenerativeAI,
-  ModelParams,
-  SchemaType
-} from "@google/generative-ai";
+import { RenameRegistry } from "./registry.js";
 
 export function geminiRenameWithCheckpoint({
   apiKey,
@@ -20,8 +12,9 @@ export function geminiRenameWithCheckpoint({
   checkpointManager?: CheckpointManager;
 }) {
   const client = new GoogleGenerativeAI(apiKey);
+  let registry: RenameRegistry | undefined;
 
-  return async (code: string): Promise<string> => {
+  const plugin = async (code: string): Promise<string> => {
     return await visitAllIdentifiersWithCheckpoint(
       code,
       async (name, surroundingCode) => {
@@ -50,9 +43,15 @@ export function geminiRenameWithCheckpoint({
       },
       contextWindowSize,
       showPercentage,
-      { checkpointManager, saveInterval: 5 } // Save every 5 identifiers
+      { checkpointManager, saveInterval: 5, registry } // Save every 5 identifiers
     );
   };
+
+  (plugin as any).setRegistry = (r: RenameRegistry) => {
+    registry = r;
+  };
+
+  return plugin;
 }
 
 function toRenameParams(name: string, model: string): ModelParams {

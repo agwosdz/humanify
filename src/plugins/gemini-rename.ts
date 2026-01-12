@@ -7,6 +7,8 @@ import {
   SchemaType
 } from "@google/generative-ai";
 
+import { RenameRegistry } from "./registry.js";
+
 export function geminiRename({
   apiKey,
   model: modelName,
@@ -17,6 +19,7 @@ export function geminiRename({
   contextWindowSize: number;
 }) {
   const client = new GoogleGenerativeAI(apiKey);
+  let registry: RenameRegistry | undefined;
 
   const geminiRenamePlugin = async (code: string): Promise<string> => {
     return await visitAllIdentifiers(
@@ -38,13 +41,25 @@ export function geminiRename({
         return renamed;
       },
       contextWindowSize,
-      showPercentage
+      showPercentage,
+      registry
     );
   };
-  
+
+  (geminiRenamePlugin as any).setRegistry = (r: RenameRegistry) => {
+    registry = r;
+  };
+
+  (geminiRenamePlugin as any).getVisitor = () => async (name: string, context: string, prompt: string) => {
+    const model = client.getGenerativeModel({ model: modelName });
+    const result = await model.generateContent(prompt);
+    return result.response.text();
+  };
+  (geminiRenamePlugin as any).contextWindowSize = contextWindowSize;
+
   // Set function name for identification
   Object.defineProperty(geminiRenamePlugin, 'name', { value: 'geminiRename' });
-  
+
   return geminiRenamePlugin;
 }
 
