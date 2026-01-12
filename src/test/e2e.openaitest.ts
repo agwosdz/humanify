@@ -28,7 +28,7 @@ test("Unminifies an example file successfully", async () => {
   };
 
   await expectStartsWith(
-    ["UNREADABLE", "GOOD"],
+    ["UNREADABLE", "GOOD", "EXCELLENT"],
     await fileIsMinified(`fixtures/example.min.js`)
   );
 

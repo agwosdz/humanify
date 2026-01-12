@@ -32,6 +32,9 @@ export const MODELS: { [modelName: string]: ModelDefinition } = {
   },
   "phi3-fp16": {
     url: url`https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/Phi-3-mini-4k-instruct-fp16.gguf?download=true`
+  },
+  "phi4-bf16": {
+    url: url`https://huggingface.co/unsloth/Phi-4-mini-instruct-GGUF/resolve/main/Phi-4-mini-instruct.BF16.gguf?download=true`
   }
 };
 
