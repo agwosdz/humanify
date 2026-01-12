@@ -15,6 +15,9 @@ import { CheckpointManager } from "../checkpoint.js";
 import { openaiRenameWithCheckpoint } from "../plugins/openai/openai-rename-with-checkpoint.js";
 import { findProjectRoot } from "../file-utils.js";
 import { logRunSummary } from "../verbose.js";
+import { existsSync, lstatSync, readFileSync } from "fs";
+import { countIdentifiers } from "../plugins/local-llm-rename/visit-all-identifiers.js";
+import { ReportManager } from "../report.js";
 
 export const openai = cli()
   .name("openai")
@@ -37,18 +40,36 @@ export const openai = cli()
     `${DEFAULT_CONTEXT_WINDOW_SIZE}`
   )
   .option("--checkpoint", "Enable checkpoint saving", false)
-  .option("--resume", "Resume from last checkpoint", false)
+  .option("-O, --outputDir <path>", "Output directory for unminified files", "./humanifined")
   .option("-S, --skipExisting", "Skip processing if the deobfuscated file already exists", false)
-  .option("--distill", "Enable iterative logic distillation (high quality but slower)", false)
-  .option("--verify", "Verify functional parity between original and unminified code", false)
-  .option("--registry <path>", "Specify an explicit path for the rename registry")
-  .argument("<inputs...>", "The input minified Javascript file(s) or glob patterns")
+  .option("--distill", "Enable iterative logic distillation", false)
+  .option("--verify", "Verify functional parity", false)
+  .option("--registry <path>", "Specify path for rename registry")
+  .option("-r, --recursive", "Recursively search for files in directories", false)
+  .option("--resume", "Resume from last checkpoint", false)
+  .argument("<inputs...>", "Input minified Javascript file(s) or glob patterns")
   .action(async (inputs: string[], opts) => {
     if (opts.verbose) {
       verbose.enabled = true;
     }
 
-    const normalizedInputs = inputs.map(i => i.replace(/\\/g, '/'));
+    const hasWildcardOrDirectory = inputs.some(i => {
+      const p = i.replace(/\\/g, '/');
+      return i.includes('*') || i.includes('?') || i.includes('[') || i.includes('{') || (existsSync(p) && lstatSync(p).isDirectory());
+    });
+
+    if (opts.recursive && !hasWildcardOrDirectory) {
+      err("--recursive can only be used with directory or wildcard inputs.");
+    }
+
+    const normalizedInputs = inputs.map(i => {
+      const p = i.replace(/\\/g, '/');
+      if (opts.recursive && existsSync(p) && lstatSync(p).isDirectory()) {
+        return path.join(p, "**/*.js").replace(/\\/g, '/');
+      }
+      return p;
+    });
+
     const files = await glob(normalizedInputs, { absolute: true });
 
     const finalRegistryPath = opts.registry || path.join(findProjectRoot(process.cwd()), ".humanify-registry.json");
@@ -88,31 +109,64 @@ export const openai = cli()
       });
     }
 
+    const reportManager = new ReportManager();
     console.log(`\nFound ${files.length} file(s) to process.`);
+    const maxIds = opts.maxids ? parseInt(opts.maxids) : Infinity;
 
     for (let i = 0; i < files.length; i++) {
       const filename = files[i];
       console.log(`\n[${i + 1}/${files.length}] Processing: ${path.basename(filename)}`);
 
-      if (opts.checkpoint || opts.resume) {
-        await unminifyWithCheckpoint(filename, opts.outputDir, [
-          babel,
-          renamePlugin,
-          prettier
-        ], {
-          enableCheckpoint: true,
-          resumeFromCheckpoint: opts.resume,
-          skipExisting: opts.skipExisting,
-          enableDistill: opts.distill,
-          enableVerify: opts.verify,
-          registryPath: opts.registry
+      try {
+        const code = readFileSync(filename, "utf-8");
+        const count = await countIdentifiers(code);
+
+        if (count > maxIds) {
+          console.log(`⚠️  Skipping ${path.basename(filename)}: Too many identifiers (${count} > ${maxIds})`);
+          reportManager.addEntry({
+            filename: path.basename(filename),
+            status: "skipped",
+            reason: `Exceeded maxids (${count} > ${maxIds})`,
+            identifierCount: count
+          });
+          continue;
+        }
+
+        if (opts.checkpoint || opts.resume) {
+          await unminifyWithCheckpoint(filename, opts.outputDir, [
+            babel,
+            renamePlugin,
+            prettier
+          ], {
+            enableCheckpoint: true,
+            resumeFromCheckpoint: opts.resume,
+            skipExisting: opts.skipExisting,
+            enableDistill: opts.distill,
+            enableVerify: opts.verify,
+            registryPath: opts.registry
+          });
+        } else {
+          await unminify(filename, opts.outputDir, [
+            babel,
+            renamePlugin,
+            prettier
+          ], opts.skipExisting, opts.distill, opts.verify, opts.registry);
+        }
+
+        reportManager.addEntry({
+          filename: path.basename(filename),
+          status: "success",
+          identifierCount: count
         });
-      } else {
-        await unminify(filename, opts.outputDir, [
-          babel,
-          renamePlugin,
-          prettier
-        ], opts.skipExisting, opts.distill, opts.verify, opts.registry);
+      } catch (e: any) {
+        console.error(`❌ Failed to process ${path.basename(filename)}:`, e.message);
+        reportManager.addEntry({
+          filename: path.basename(filename),
+          status: "failed",
+          reason: e.message
+        });
       }
     }
+
+    await reportManager.saveReport(opts.outputDir);
   });

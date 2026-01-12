@@ -36,7 +36,8 @@ export function showPercentage(
   total?: number,
   label: string = "Processing",
   color: keyof typeof COLORS = "green",
-  startTime?: number
+  startTime?: number,
+  unit: string = "ids"
 ) {
   const percentageInt = Math.round(percentage * 100);
   const width = 25;
@@ -49,25 +50,21 @@ export function showPercentage(
   let etaStr = "";
   if (startTime && current && total && current > 0) {
     const elapsed = Date.now() - startTime;
-    const eta = (elapsed / current) * (total - current);
-    etaStr = ` | ETA: ${formatDuration(eta)}`;
+    const msPerId = elapsed / current;
+    const eta = msPerId * (total - current);
+    const secPerId = (msPerId / 1000).toFixed(2);
+    etaStr = ` | ETA: ${formatDuration(eta)} (${secPerId}s/${unit.replace(/s$/, '')})`;
   }
 
   let progressText: string;
   if (current !== undefined && total !== undefined) {
-    progressText = `${label}: [${bar}] ${percentageInt}% (${current}/${total})${etaStr}`;
+    progressText = `${label}: [${bar}] ${percentageInt}% (${current}/${total} ${unit})${etaStr}`;
   } else {
     progressText = `${label}: [${bar}] ${percentageInt}%${etaStr}`;
   }
 
   if (!verbose.enabled) {
-    if (process.stdout.clearLine && process.stdout.cursorTo) {
-      process.stdout.clearLine(0);
-      process.stdout.cursorTo(0);
-      process.stdout.write(progressText);
-    } else {
-      process.stdout.write(`\r${progressText}`);
-    }
+    process.stdout.write(`\r${COLORS.reset}${progressText}`);
   } else {
     verbose.log(progressText);
   }

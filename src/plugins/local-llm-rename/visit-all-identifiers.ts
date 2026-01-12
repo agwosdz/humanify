@@ -88,34 +88,6 @@ export async function visitAllIdentifiers(
   return stringified.code;
 }
 
-function findScopes(ast: Node): NodePath<Identifier>[] {
-  const scopes: [nodePath: NodePath<Identifier>, scopeSize: number][] = [];
-  traverse(ast, {
-    BindingIdentifier(path) {
-      const bindingBlock = closestSurroundingContextPath(path).scope.block;
-      const pathSize = bindingBlock.end! - bindingBlock.start!;
-
-      scopes.push([path, pathSize]);
-    }
-  });
-
-  scopes.sort((a, b) => b[1] - a[1]);
-
-  return scopes.map(([nodePath]) => nodePath);
-}
-
-function hasVisited(path: NodePath<Identifier>, visited: Set<string>) {
-  return visited.has(path.node.name);
-}
-
-function markVisited(
-  path: NodePath<Identifier>,
-  newName: string,
-  visited: Set<string>
-) {
-  visited.add(newName);
-}
-
 async function scopeToString(
   path: NodePath<Identifier>,
   contextWindowSize: number
@@ -142,6 +114,48 @@ async function scopeToString(
   } else {
     return code.slice(0, contextWindowSize);
   }
+}
+
+export async function countIdentifiers(code: string): Promise<number> {
+  const ast = await parseAsync(code, {
+    sourceType: "unambiguous",
+    parserOpts: {
+      plugins: ["jsx", "typescript"],
+      allowImportExportEverywhere: true,
+      allowReturnOutsideFunction: true
+    }
+  });
+
+  if (!ast) return 0;
+  return findScopes(ast).length;
+}
+
+export function findScopes(ast: Node): NodePath<Identifier>[] {
+  const scopes: [nodePath: NodePath<Identifier>, scopeSize: number][] = [];
+  traverse(ast, {
+    BindingIdentifier(path) {
+      const bindingBlock = closestSurroundingContextPath(path).scope.block;
+      const pathSize = bindingBlock.end! - bindingBlock.start!;
+
+      scopes.push([path, pathSize]);
+    }
+  });
+
+  scopes.sort((a, b) => b[1] - a[1]);
+
+  return scopes.map(([nodePath]) => nodePath);
+}
+
+function hasVisited(path: NodePath<Identifier>, visited: Set<string>) {
+  return visited.has(path.node.name);
+}
+
+function markVisited(
+  path: NodePath<Identifier>,
+  newName: string,
+  visited: Set<string>
+) {
+  visited.add(newName);
 }
 
 function closestSurroundingContextPath(
