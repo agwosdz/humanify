@@ -40,7 +40,6 @@ export const openai = cli()
     `${DEFAULT_CONTEXT_WINDOW_SIZE}`
   )
   .option("--checkpoint", "Enable checkpoint saving", false)
-  .option("-O, --outputDir <path>", "Output directory for unminified files", "./humanifined")
   .option("-S, --skipExisting", "Skip processing if the deobfuscated file already exists", false)
   .option("--distill", "Enable iterative logic distillation", false)
   .option("--verify", "Verify functional parity", false)
