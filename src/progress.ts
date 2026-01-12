@@ -25,17 +25,21 @@ function formatBytes(numBytes: number) {
 export function showPercentage(percentage: number, current?: number, total?: number) {
   const percentageStr = Math.round(percentage * 100);
   let progressText: string;
-  
+
   if (current !== undefined && total !== undefined) {
     progressText = `Processing: ${current}/${total}`;
   } else {
     progressText = `Processing: ${percentageStr}%`;
   }
-  
+
   if (!verbose.enabled) {
-    process.stdout.clearLine?.(0);
-    process.stdout.cursorTo(0);
-    process.stdout.write(progressText);
+    if (process.stdout.clearLine && process.stdout.cursorTo) {
+      process.stdout.clearLine(0);
+      process.stdout.cursorTo(0);
+      process.stdout.write(progressText);
+    } else {
+      process.stdout.write(`\r${progressText}`);
+    }
   } else {
     verbose.log(progressText);
   }

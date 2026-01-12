@@ -1,6 +1,6 @@
 {
   "name": "humanifyjs",
-  "version": "2.3.0dev",
+  "version": "2.3.1dev",
   "description": "",
   "main": "dist/index.mjs",
   "scripts": {
@@ -60,6 +60,7 @@
     "ipull": "^3.9.0",
     "node-llama-cpp": "^3.0.0-beta.40",
     "openai": "^4.55.1",
+    "tinyglobby": "^0.2.15",
     "tsx": "^4.16.2",
     "typescript": "^5.5.4",
     "webcrack": "^2.13.0"

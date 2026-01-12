@@ -1,6 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
-import { ensureFileExists } from "./file-utils.js";
+import { ensureFileExists, rmWithRetry } from "./file-utils.js";
 import { webcrack } from "./plugins/webcrack.js";
 import { verbose } from "./verbose.js";
 import { existsSync } from "fs";
@@ -54,10 +54,10 @@ export async function unminifyWithCheckpoint(
 
   const bundledCode = await fs.readFile(filename, "utf-8");
 
-  const workspaceDir = path.join(outputDir, ".humanify-work");
+  const workspaceDir = path.join(outputDir, `.humanify-work-${inputBaseName}`);
   // Only recreate workspace if we are not resuming, or if it doesn't exist
   if (!resumeFromCheckpoint || !existsSync(workspaceDir)) {
-    await fs.rm(workspaceDir, { recursive: true, force: true });
+    await rmWithRetry(workspaceDir);
     await fs.mkdir(workspaceDir, { recursive: true });
   }
 
@@ -181,7 +181,7 @@ export async function unminifyWithCheckpoint(
     }
   }
 
-  await fs.rm(workspaceDir, { recursive: true, force: true });
+  await rmWithRetry(workspaceDir);
 
   // Clear checkpoint on successful completion
   if (checkpointManager) {

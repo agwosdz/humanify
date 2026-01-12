@@ -1,0 +1,61 @@
+TAP version 13
+# Exit Code: 1
+# Stdout: Processing file 1/1
+# Stderr: file:///H:/Development/git/agwosdz/dist/index-BnbqOwZl.mjs:23356
+#     process.stdout.cursorTo(0);
+#                    ^
+# TypeError: process.stdout.cursorTo is not a function
+#     at showPercentage (file:///H:/Development/git/agwosdz/dist/index-BnbqOwZl.mjs:23356:20)
+#     at visitAllIdentifiers (file:///H:/Development/git/agwosdz/dist/index-BnbqOwZl.mjs:54241:33)
+#     at async localRename (file:///H:/Development/git/agwosdz/dist/index-BnbqOwZl.mjs:54305:12)
+#     at async unminify (file:///H:/Development/git/agwosdz/dist/index-BnbqOwZl.mjs:223:27)
+#     at async Command.<anonymous> (file:///H:/Development/git/agwosdz/dist/index-BnbqOwZl.mjs:54366:7)
+# Node.js v22.16.0
+# Subtest: cli supports glob patterns and multiple files
+not ok 1 - cli supports glob patterns and multiple files
+  ---
+  duration_ms: 3954.4259
+  type: 'test'
+  location: 'H:\\Development\\git\\agwosdz\\src\\test\\wildcard.test.ts:1:661'
+  failureType: 'testCodeFailure'
+  error: |-
+    Command failed with stderr: file:///H:/Development/git/agwosdz/dist/index-BnbqOwZl.mjs:23356
+        process.stdout.cursorTo(0);
+                       ^
+    
+    TypeError: process.stdout.cursorTo is not a function
+        at showPercentage (file:///H:/Development/git/agwosdz/dist/index-BnbqOwZl.mjs:23356:20)
+        at visitAllIdentifiers (file:///H:/Development/git/agwosdz/dist/index-BnbqOwZl.mjs:54241:33)
+        at async localRename (file:///H:/Development/git/agwosdz/dist/index-BnbqOwZl.mjs:54305:12)
+        at async unminify (file:///H:/Development/git/agwosdz/dist/index-BnbqOwZl.mjs:223:27)
+        at async Command.<anonymous> (file:///H:/Development/git/agwosdz/dist/index-BnbqOwZl.mjs:54366:7)
+    
+    Node.js v22.16.0
+    
+    
+    1 !== 0
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 0
+  actual: 1
+  operator: 'strictEqual'
+  stack: |-
+    showPercentage (file:///H:/Development/git/agwosdz/dist/index-BnbqOwZl.mjs:23356:20)
+    visitAllIdentifiers (file:///H:/Development/git/agwosdz/dist/index-BnbqOwZl.mjs:54241:33)
+    async localRename (file:///H:/Development/git/agwosdz/dist/index-BnbqOwZl.mjs:54305:12)
+    async unminify (file:///H:/Development/git/agwosdz/dist/index-BnbqOwZl.mjs:223:27)
+    async Command.<anonymous> (file:///H:/Development/git/agwosdz/dist/index-BnbqOwZl.mjs:54366:7)
+    TestContext.<anonymous> (H:\Development\git\agwosdz\src\test\wildcard.test.ts:38:12)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4169.2597

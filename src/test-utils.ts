@@ -16,23 +16,21 @@ export async function humanify(...argv: string[]) {
   const stderr: string[] = [];
   process.stdout.on("data", (data) => stdout.push(data.toString()));
   process.stderr.on("data", (data) => stderr.push(data.toString()));
-  await new Promise((resolve, reject) =>
-    process.on("close", () => {
-      if (process.exitCode === 0) {
-        resolve(undefined);
-      } else {
-        reject(
-          new Error(
-            `Process exited with code ${process.exitCode}, stderr: ${stderr.join("")}, stdout: ${stdout.join("")}`
-          )
-        );
-      }
+
+  const exitCode = await new Promise<number | null>((resolve) =>
+    process.on("close", (code) => {
+      resolve(code);
     })
   );
+
   verbose.log("stdout", stdout.join(""));
   verbose.log("stderr", stderr.join(""));
 
-  return { stdout: stdout.join(""), stderr: stderr.join("") };
+  return {
+    stdout: stdout.join(""),
+    stderr: stderr.join(""),
+    exitCode
+  };
 }
 
 export function ensure<T>(

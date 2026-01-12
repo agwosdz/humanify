@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import { existsSync } from "fs";
-import { ensureFileExists } from "./file-utils.js";
+import { ensureFileExists, rmWithRetry } from "./file-utils.js";
 import { webcrack } from "./plugins/webcrack.js";
 import { verbose } from "./verbose.js";
 
@@ -31,8 +31,8 @@ export async function unminify(
 
   const bundledCode = await fs.readFile(filename, "utf-8");
 
-  const workspaceDir = path.join(outputDir, ".humanify-work");
-  await fs.rm(workspaceDir, { recursive: true, force: true });
+  const workspaceDir = path.join(outputDir, `.humanify-work-${inputBaseName}`);
+  await rmWithRetry(workspaceDir);
   await fs.mkdir(workspaceDir, { recursive: true });
 
   const extractedFiles = await webcrack(bundledCode, workspaceDir, filename);
@@ -63,7 +63,7 @@ export async function unminify(
     await fs.writeFile(targetPath, formattedCode);
   }
 
-  await fs.rm(workspaceDir, { recursive: true, force: true });
+  await rmWithRetry(workspaceDir);
 
   console.log(`Done! You can find your unminified code in ${outputDir}`);
 }

@@ -8,6 +8,8 @@ import { verbose } from "../verbose.js";
 import { env } from "../env.js";
 import { parseNumber } from "../number-utils.js";
 import { DEFAULT_CONTEXT_WINDOW_SIZE } from "./default-args.js";
+import { glob } from "tinyglobby";
+import { err } from "../cli-error.js";
 
 export const openai = cli()
   .name("openai")
@@ -32,10 +34,15 @@ export const openai = cli()
   .option("--checkpoint", "Enable checkpoint saving", false)
   .option("--resume", "Resume from last checkpoint", false)
   .option("-S, --skipExisting", "Skip processing if the deobfuscated file already exists", false)
-  .argument("input", "The input minified Javascript file")
-  .action(async (filename, opts) => {
+  .argument("<inputs...>", "The input minified Javascript file(s) or glob patterns")
+  .action(async (inputs: string[], opts) => {
     if (opts.verbose) {
       verbose.enabled = true;
+    }
+
+    const files = await glob(inputs, { absolute: true });
+    if (files.length === 0) {
+      err("No files found matching the provided inputs.");
     }
 
     const apiKey = opts.apiKey ?? env("OPENAI_API_KEY");
@@ -64,21 +71,23 @@ export const openai = cli()
       contextWindowSize
     };
 
-    if (opts.checkpoint || opts.resume) {
-      await unminifyWithCheckpoint(filename, opts.outputDir, [
-        babel,
-        renamePlugin,
-        prettier
-      ], {
-        enableCheckpoint: true,
-        resumeFromCheckpoint: opts.resume,
-        skipExisting: opts.skipExisting
-      });
-    } else {
-      await unminify(filename, opts.outputDir, [
-        babel,
-        renamePlugin,
-        prettier
-      ], opts.skipExisting);
+    for (const filename of files) {
+      if (opts.checkpoint || opts.resume) {
+        await unminifyWithCheckpoint(filename, opts.outputDir, [
+          babel,
+          renamePlugin,
+          prettier
+        ], {
+          enableCheckpoint: true,
+          resumeFromCheckpoint: opts.resume,
+          skipExisting: opts.skipExisting
+        });
+      } else {
+        await unminify(filename, opts.outputDir, [
+          babel,
+          renamePlugin,
+          prettier
+        ], opts.skipExisting);
+      }
     }
   });
