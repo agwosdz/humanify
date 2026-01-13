@@ -63,8 +63,18 @@ export const openai = cli()
 
     const normalizedInputs = inputs.map(i => {
       const p = i.replace(/\\/g, '/');
-      if (opts.recursive && existsSync(p) && lstatSync(p).isDirectory()) {
-        return path.join(p, "**/*.js").replace(/\\/g, '/');
+      if (opts.recursive) {
+        if (existsSync(p) && lstatSync(p).isDirectory()) {
+          return path.join(p, "**/*.js").replace(/\\/g, '/');
+        }
+        if (!p.includes("**")) {
+          const lastSlash = p.lastIndexOf('/');
+          if (lastSlash === -1) {
+            return "**/" + p;
+          } else {
+            return p.slice(0, lastSlash) + "/**/" + p.slice(lastSlash + 1);
+          }
+        }
       }
       return p;
     });
