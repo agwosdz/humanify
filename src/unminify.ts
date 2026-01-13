@@ -50,6 +50,15 @@ export async function unminify(
 
   for (let i = 0; i < extractedFiles.length; i++) {
     const file = extractedFiles[i];
+
+    const finalName = path.basename(file.path);
+    const targetPath = path.join(outputDir, finalName);
+
+    if (skipExisting && existsSync(targetPath)) {
+      verbose.log(`Skipping ${finalName} because it already exists.`);
+      continue;
+    }
+
     const code = await fs.readFile(file.path, "utf-8");
 
     if (code.trim().length === 0) {
@@ -86,9 +95,6 @@ export async function unminify(
 
     verbose.log("Input: ", code);
     verbose.log("Output: ", formattedCode);
-
-    const finalName = path.basename(file.path);
-    const targetPath = path.join(outputDir, finalName);
 
     await backupFile(targetPath);
     await fs.writeFile(targetPath, formattedCode);

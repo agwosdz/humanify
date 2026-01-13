@@ -146,9 +146,14 @@ export const local = cli()
           continue;
         }
 
-        const relativePath = path.relative(process.cwd(), filename);
-        const relativeDir = path.dirname(relativePath);
-        const targetOutputDir = path.join(opts.outputDir, relativeDir);
+        let targetOutputDir;
+        if (path.isAbsolute(opts.outputDir)) {
+          const relativePath = path.relative(process.cwd(), filename);
+          const relativeDir = path.dirname(relativePath);
+          targetOutputDir = path.join(opts.outputDir, relativeDir);
+        } else {
+          targetOutputDir = path.join(path.dirname(filename), opts.outputDir);
+        }
 
         if (opts.checkpoint || opts.resume) {
           await unminifyWithCheckpoint(filename, targetOutputDir, [
