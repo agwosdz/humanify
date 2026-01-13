@@ -146,8 +146,12 @@ export const local = cli()
           continue;
         }
 
+        const relativePath = path.relative(process.cwd(), filename);
+        const relativeDir = path.dirname(relativePath);
+        const targetOutputDir = path.join(opts.outputDir, relativeDir);
+
         if (opts.checkpoint || opts.resume) {
-          await unminifyWithCheckpoint(filename, opts.outputDir, [
+          await unminifyWithCheckpoint(filename, targetOutputDir, [
             babel,
             renamePlugin,
             prettier
@@ -160,7 +164,7 @@ export const local = cli()
             registryPath: opts.registry
           });
         } else {
-          await unminify(filename, opts.outputDir, [
+          await unminify(filename, targetOutputDir, [
             babel,
             renamePlugin,
             prettier
